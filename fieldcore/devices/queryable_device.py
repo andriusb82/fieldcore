@@ -1,41 +1,34 @@
 from typing import Any
 
+from fieldcore.bus.base import BaseBus
 from fieldcore.logging_utils import get_logger
-from fieldcore.protocol.base import BaseProtocol
-from fieldcore.transport.base import BaseTransport
+from fieldcore.transaction.transaction import Transaction
 
 
 class QueryableDevice:
     def __init__(
         self,
-        transport: BaseTransport,
-        protocol: BaseProtocol,
+        bus: BaseBus,
     ) -> None:
-        self.transport = transport
-        self.protocol = protocol
-
+        self.bus = bus
         self.logger = get_logger(__name__)
 
     def query(self, command: str, **kwargs) -> Any:
-        request = self.protocol.encode_request(command, **kwargs)
+        transaction = Transaction(
+            command=command,
+            payload=kwargs,
+        )
 
         self.logger.debug(
-            "Sending device request",
+            "Executing device transaction",
             extra={
                 "command": command,
-                "request_size": len(request),
             },
         )
 
-        self.transport.send(request)
-        response = self.transport.read()
+        result = self.bus.execute(transaction)
 
-        self.logger.debug(
-            "Received device response",
-            extra={
-                "command": command,
-                "response_size": len(response),
-            },
-        )
+        if not result.ok:
+            raise RuntimeError(result.error)
 
-        return self.protocol.decode_response(response)
+        return result.response
