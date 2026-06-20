@@ -28,11 +28,12 @@ class SqliteStorage:
                 self._conn.close()
                 self._conn = None
 
-    def execute(self, sql: str, params: tuple = ()) -> None:
+    def execute(self, sql: str, params: tuple = ()) -> int:
         with self._lock:
             assert self._conn is not None, "Database not connected"
-            self._conn.execute(sql, params)
+            cursor = self._conn.execute(sql, params)
             self._conn.commit()
+            return cursor.rowcount
 
     def insert(self, sql: str, params: tuple = ()) -> int:
         with self._lock:
