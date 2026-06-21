@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -37,10 +38,19 @@ class RetentionService:
             datetime.now(timezone.utc) - timedelta(days=policy.max_age_days)
         ).isoformat()
 
-        deleted = self.storage.execute(
-            f"DELETE FROM {policy.table} WHERE {policy.timestamp_column} < ?",
-            (cutoff,),
-        )
+        try:
+            deleted = self.storage.execute(
+                f"DELETE FROM {policy.table} WHERE {policy.timestamp_column} < ?",
+                (cutoff,),
+            )
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc).lower():
+                self.logger.debug(
+                    "Retention table does not exist yet, skipping",
+                    extra={"table": policy.table},
+                )
+                return 0
+            raise
 
         self.logger.info(
             "Retention policy applied",

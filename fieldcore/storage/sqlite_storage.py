@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from threading import RLock
 
@@ -53,3 +54,19 @@ class SqliteStorage:
             assert self._conn is not None, "Database not connected"
             cursor = self._conn.execute(sql, params)
             return cursor.fetchone()
+
+    @contextmanager
+    def transaction(self):
+        """
+        Run multiple statements as one atomic unit. Yields the raw
+        connection — use conn.execute(...) inside the block. Commits on
+        success, rolls back if any statement raises.
+        """
+        with self._lock:
+            assert self._conn is not None, "Database not connected"
+            try:
+                yield self._conn
+                self._conn.commit()
+            except Exception:
+                self._conn.rollback()
+                raise
