@@ -4,8 +4,8 @@ import yaml
 from pathlib import Path
 from typing import Any, Type
 
-from app.core.events import Event, LocalEventBus
-from app.core.module import BaseModule
+from fieldcore.core.events import Event, LocalEventBus
+from fieldcore.core.module import BaseModule
 
 
 class ConfigManager:

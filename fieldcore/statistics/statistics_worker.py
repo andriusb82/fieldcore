@@ -4,8 +4,8 @@ from multiprocessing import Queue
 from queue import Empty
 from typing import Any
 
-from app.core.events import Event
-from app.core.module import BaseModule
+from fieldcore.core.events import Event
+from fieldcore.core.module import BaseModule
 
 
 class StatisticsModule(BaseModule):
