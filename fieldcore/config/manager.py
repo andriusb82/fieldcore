@@ -41,7 +41,8 @@ class ConfigManager:
             with open(self._config_path, "r", encoding="utf-8") as file:
                 self._config = json.load(file)
 
-            self._merge_missing_defaults(self._config, self._default_config)
+            if self._merge_missing_defaults(self._config, self._default_config):
+                self.save()
 
             return deepcopy(self._config)
 
@@ -142,11 +143,20 @@ class ConfigManager:
     def _merge_missing_defaults(
         target: dict[str, Any],
         defaults: dict[str, Any],
-    ) -> None:
+    ) -> bool:
+        """Fill in keys missing from `target`. Returns True if anything was added,
+        so callers can persist the merge instead of letting it only exist in memory
+        until the next explicit save()."""
+        changed = False
+
         for key, value in defaults.items():
             if key not in target:
                 target[key] = deepcopy(value)
+                changed = True
                 continue
 
             if isinstance(value, dict) and isinstance(target[key], dict):
-                ConfigManager._merge_missing_defaults(target[key], value)
+                if ConfigManager._merge_missing_defaults(target[key], value):
+                    changed = True
+
+        return changed
