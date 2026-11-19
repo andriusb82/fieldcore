@@ -6,7 +6,7 @@ from typing import Any, Callable
 from fieldcore.logging_utils import get_logger
 from fieldcore.services.reliability.outbox_service import OutboxService
 
-SendFn = Callable[[dict[str, Any]], None]
+SendFn = Callable[[dict[str, Any], str], None]
 
 
 class OutboxForwarder:
@@ -16,6 +16,11 @@ class OutboxForwarder:
     success. Failures get exponential backoff (capped) via next_retry_at,
     so a struggling endpoint is retried with growing delay instead of being
     hammered every cycle.
+
+    send_fn receives (payload, message_type) - message_type is whatever the
+    caller passed to OutboxService.enqueue(), letting a single send_fn route
+    different message types (e.g. "alarm" vs "reading") to different
+    endpoints/encodings instead of needing a separate forwarder per type.
     """
 
     def __init__(
@@ -50,7 +55,7 @@ class OutboxForwarder:
 
     def _send_one(self, message: dict[str, Any]) -> bool:
         try:
-            self.send_fn(message["payload"])
+            self.send_fn(message["payload"], message["message_type"])
             self.outbox.mark_sent(message["id"])
             return True
 
