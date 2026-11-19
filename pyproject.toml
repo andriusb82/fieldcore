@@ -8,5 +8,10 @@ version = "0.1.0"
 description = "Core library for field monitoring devices"
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]

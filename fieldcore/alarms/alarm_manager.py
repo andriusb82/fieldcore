@@ -9,6 +9,9 @@ from fieldcore.core.events import Event
 from fieldcore.core.module import BaseModule
 from fieldcore.logging_utils import get_logger
 
+ALARM_RAISE_REQUESTED = "alarm.raise.requested"
+ALARM_CLEAR_REQUESTED = "alarm.clear.requested"
+
 
 class AlarmManagerModule(BaseModule):
     """
@@ -218,6 +221,25 @@ class AlarmManagerModule(BaseModule):
                 "device.data.received",
                 self.on_device_data_received,
             )
+
+        # Generic raise/clear entry point so any component (a connectivity
+        # monitor, a cabinet watchdog, ...) can raise/clear an alarm by id via
+        # the event bus without holding a direct reference to this module.
+        self.context.event_bus.subscribe(ALARM_RAISE_REQUESTED, self._on_raise_requested)
+        self.context.event_bus.subscribe(ALARM_CLEAR_REQUESTED, self._on_clear_requested)
+
+    def _on_raise_requested(self, event: Event) -> None:
+        self.raise_alarm(
+            event.payload["alarm_id"],
+            payload=event.payload.get("payload"),
+            timeout_seconds=event.payload.get("timeout_seconds"),
+        )
+
+    def _on_clear_requested(self, event: Event) -> None:
+        self.clear_alarm(
+            event.payload["alarm_id"],
+            payload=event.payload.get("payload"),
+        )
 
     def on_device_data_received(self, event: Event) -> None:
         device_id = event.payload["device_id"]
